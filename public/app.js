@@ -274,16 +274,43 @@
       .replace(/'/g, '&#39;');
   }
 
+  // Trailing punctuation (and escaped quotes or brackets) usually ends the sentence,
+  // not the address: "see https://example.com." links to https://example.com.
+  function splitTrailing(url) {
+    let rest = '';
+    for (;;) {
+      const entity = url.match(/(&quot;|&#39;|&gt;|&lt;)$/);
+      if (entity) {
+        rest = entity[1] + rest;
+        url = url.slice(0, -entity[1].length);
+      } else if (/[.,;:!?\]*_~]$/.test(url) || (url.endsWith(')') && !url.includes('('))) {
+        rest = url.slice(-1) + rest;
+        url = url.slice(0, -1);
+      } else {
+        return { url, rest };
+      }
+    }
+  }
+
   function inline(text) {
     return text
       .split(/(`[^`\n]+`)/g)
       .map((part, index) => {
         if (index % 2 === 1) return `<code>${escapeHtml(part.slice(1, -1))}</code>`;
+        // Links become placeholders first, so bold/italic never reach inside an href.
+        // Only http(s) and mailto addresses are linked, from text that is already escaped.
         const links = [];
-        let html = escapeHtml(part).replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => {
+        const keep = (url, label) => {
           links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`);
           return `\u0000${links.length - 1}\u0000`;
-        });
+        };
+        let html = escapeHtml(part)
+          .replace(/\[([^\]\n]+)\]\(((?:https?:\/\/|mailto:)[^\s)]+)\)/g, (_, label, url) => keep(url, label))
+          .replace(/&lt;((?:https?:\/\/|mailto:)\S+?)&gt;/g, (_, url) => keep(url, url.replace(/^mailto:/, '')))
+          .replace(/(^|[^\w/="\u0000])(https?:\/\/[^\s<\u0000]+)/g, (_, before, raw) => {
+            const { url, rest } = splitTrailing(raw);
+            return url.length > 'https://'.length ? `${before}${keep(url, url)}${rest}` : `${before}${raw}`;
+          });
         html = html
           .replace(/\*\*(?=\S)([\s\S]*?\S)\*\*/g, '<strong>$1</strong>')
           .replace(/(^|[^*\w])\*(?=\S)([^*\n]*?\S)\*(?!\*)/g, '$1<em>$2</em>')
