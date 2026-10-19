@@ -1,4 +1,4 @@
-// Tests for api/chat.js. Groq is never called: global fetch is replaced with a stub.
+// Tests for api/chat.js. Groq and the site guide are never called: global fetch is replaced with a stub.
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import chat from '../api/chat.js';
@@ -6,10 +6,19 @@ import chat from '../api/chat.js';
 const realFetch = globalThis.fetch;
 const realConsoleError = console.error;
 const FAKE_KEY = 'test-key-not-real';
+const SITE_GUIDE_URL = 'https://ianmauck.lovable.app/site-guide.txt';
+const SAMPLE_GUIDE = 'Home: https://ianmauck.lovable.app/\nMy Story: https://ianmauck.lovable.app/journey';
+const textGuide = () => new Response(SAMPLE_GUIDE, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 let calls;
+let guideFetches;
+let guideResponder;
 
-function post(body, { contentType = 'application/json', raw } = {}) {
-  return chat.fetch(
+// Each call gives a new copy of the module, so its site-guide cache starts empty.
+let freshCount = 0;
+const freshChat = async () => (await import(`../api/chat.js?fresh=${++freshCount}`)).default;
+
+function post(body, { contentType = 'application/json', raw, handler = chat } = {}) {
+  return handler.fetch(
     new Request('http://localhost/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': contentType },
@@ -21,6 +30,10 @@ function post(body, { contentType = 'application/json', raw } = {}) {
 function stubGroq(responder) {
   calls = [];
   globalThis.fetch = async (url, init) => {
+    if (String(url) === SITE_GUIDE_URL) {
+      guideFetches++;
+      return guideResponder();
+    }
     calls.push({ url, init, body: JSON.parse(init.body) });
     return responder(url, init);
   };
@@ -39,6 +52,8 @@ beforeEach(() => {
   process.env.GROQ_API_KEY = FAKE_KEY;
   delete process.env.GROQ_MODEL;
   calls = [];
+  guideFetches = 0;
+  guideResponder = textGuide;
   console.error = () => {};
 });
 
@@ -223,4 +238,56 @@ test('hides <think> blocks from reasoning models', async () => {
   stubGroq(() => groqReply('<think>working it out</think>\n\nThe answer is 4.'));
   const res = await post(userSays('2+2?'));
   assert.equal((await res.json()).reply, 'The answer is 4.');
+});
+
+test('adds the site guide to the system prompt and caches it', async () => {
+  const handler = await freshChat();
+  stubGroq(() => groqReply('ok'));
+  await post(userSays('Where is your story page?'), { handler });
+  await post(userSays('And the home page?'), { handler });
+
+  assert.equal(guideFetches, 1, 'guide fetched once, then served from cache');
+  const system = calls[0].body.messages[0].content;
+  assert.ok(system.includes(`SITE GUIDE\n${SAMPLE_GUIDE}`));
+  assert.match(system, /Never invent a page, section or link/);
+  assert.match(system, /point to the Contact section/);
+  assert.match(system, /Never share a phone number or address/);
+  assert.equal(calls[0].body.temperature, 0.3);
+});
+
+test('answers without the guide when it cannot be fetched', async () => {
+  const handler = await freshChat();
+  guideResponder = () => {
+    throw new TypeError('fetch failed');
+  };
+  stubGroq(() => groqReply('Hello!'));
+  const res = await post(userSays('Hi'), { handler });
+
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).reply, 'Hello!');
+  const system = calls[0].body.messages[0].content;
+  assert.ok(!system.includes('SITE GUIDE'));
+  assert.match(system, /Never share a phone number or address/, 'privacy rule applies without the guide');
+});
+
+test('ignores an HTML page served in place of the guide', async () => {
+  for (const page of [
+    () => new Response('<!DOCTYPE html><html>Not found</html>', { status: 404, headers: { 'Content-Type': 'text/html' } }),
+    () => new Response('<!DOCTYPE html><html>App shell</html>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } }),
+  ]) {
+    const handler = await freshChat();
+    guideResponder = page;
+    stubGroq(() => groqReply('ok'));
+    await post(userSays('Hi'), { handler });
+    assert.ok(!calls[0].body.messages[0].content.includes('SITE GUIDE'));
+  }
+});
+
+test('does not refetch a missing guide on every request', async () => {
+  const handler = await freshChat();
+  guideResponder = () => new Response('missing', { status: 404 });
+  stubGroq(() => groqReply('ok'));
+  await post(userSays('one'), { handler });
+  await post(userSays('two'), { handler });
+  assert.equal(guideFetches, 1);
 });

@@ -748,13 +748,17 @@ svg {
   overflow-x: auto;
 }
 
+/* Columns keep a readable width and the table scrolls sideways in its own box,
+   instead of squeezing cells into tall, narrow rows. */
 .prose table {
+  width: max-content;
   border-collapse: collapse;
   font-size: 0.93em;
 }
 
 .prose th,
 .prose td {
+  max-width: 16em;
   padding: 6px 10px;
   border: 1px solid var(--border);
   text-align: left;
@@ -1032,6 +1036,44 @@ svg {
     width: 42px;
     padding: 0;
   }
+}
+
+/* Embedded in the site's chat panel, which already shows the name: drop the robot
+   scene and the visible title, and let the chat fill the panel edge to edge. */
+.is-embedded body {
+  background-image: none;
+}
+
+.is-embedded .app {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  padding: 0;
+  gap: 0;
+}
+
+.is-embedded .scene {
+  display: none;
+}
+
+.is-embedded .chat {
+  flex: 1 0 auto;
+  border: 0;
+  border-radius: 0;
+}
+
+.is-embedded .chat__header {
+  justify-content: flex-end;
+  padding: 10px 12px;
+}
+
+.is-embedded .chat__title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 /* Motion */

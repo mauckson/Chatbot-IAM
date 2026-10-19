@@ -8,6 +8,8 @@
   const REQUEST_TIMEOUT_MS = 35000; // a little longer than the server's own Groq timeout
   const SLOW_HINT_MS = 8000;
   const THEME_KEY = 'iam-bot-theme';
+  const EMBEDDED = window.parent !== window;
+  const EMBED_PARENT_ORIGIN = 'https://ianmauck.lovable.app'; // must match frame-ancestors in vercel.json
   const NO_RETRY = new Set(['message_too_long', 'invalid_messages', 'invalid_json', 'context_too_long']);
 
   const $ = (id) => document.getElementById(id);
@@ -470,9 +472,18 @@
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
       event.preventDefault();
       if (!state.pending) sendMessage(els.input.value);
-    } else if (event.key === 'Escape' && state.pending) {
+    }
+  });
+
+  // Escape stops a reply in progress. Otherwise, inside the site's chat panel,
+  // it asks the parent page to close the panel (keys typed here never reach it).
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || event.defaultPrevented) return;
+    if (state.pending) {
       event.preventDefault();
       stopReply();
+    } else if (EMBEDDED) {
+      window.parent.postMessage({ type: 'iam-bot:close' }, EMBED_PARENT_ORIGIN);
     }
   });
 
