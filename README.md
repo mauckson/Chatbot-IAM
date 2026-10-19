@@ -43,17 +43,17 @@ npm test
 2. In Vercel: **Add New → Project**, import the repository. Leave the framework preset as **Other**; `vercel.json` already sets the output directory to `public`, and there is no build command.
 3. Under **Environment Variables**, add:
    - `GROQ_API_KEY`: your Groq key (required)
-   - `GROQ_MODEL`: optional; defaults to `llama-3.3-70b-versatile`
+   - `GROQ_MODEL`: optional; defaults to `openai/gpt-oss-120b`
 4. Deploy. If you add or change a variable later, redeploy for it to take effect.
 
 ## Configuration and limits
 
 | Setting | Where | Value |
 | --- | --- | --- |
-| Model | `GROQ_MODEL` env var | default `llama-3.3-70b-versatile` (e.g. `openai/gpt-oss-120b`, `llama-3.1-8b-instant`) |
+| Model | `GROQ_MODEL` env var | default `openai/gpt-oss-120b` (e.g. `openai/gpt-oss-20b` for faster replies). Check https://console.groq.com/docs/deprecations before choosing one |
 | Max message length | client + server | 4,000 characters |
 | Conversation context | client + server | last 12 messages, max 24,000 characters; older replies clipped to 6,000 |
-| Reply length | server | 1,024 tokens (replies cut short are flagged in the UI) |
+| Reply length | server | 2,048 tokens, including the model's brief thinking (replies cut short are flagged in the UI) |
 | Groq request timeout | server | 25 s (function `maxDuration` is 30 s) |
 | Browser request timeout | client | 35 s |
 | Request body size | server | 200 KB |

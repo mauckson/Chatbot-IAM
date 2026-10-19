@@ -2,7 +2,7 @@
 // GROQ_API_KEY is read from the server environment and never sent to the browser.
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
 const MAX_USER_CHARS = 4000; // longest message a user can send
 const MAX_ASSISTANT_CHARS = 6000; // older replies are clipped to this
@@ -10,7 +10,7 @@ const MAX_HISTORY_MESSAGES = 12; // recent messages sent as context
 const MAX_CONTEXT_CHARS = 24000; // total character budget for that history
 const MAX_INCOMING_MESSAGES = 100; // anything longer is not a real client
 const MAX_BODY_BYTES = 200_000;
-const MAX_OUTPUT_TOKENS = 1024;
+const MAX_OUTPUT_TOKENS = 2048; // reasoning models spend part of this thinking
 const UPSTREAM_TIMEOUT_MS = 25_000; // keep below maxDuration in vercel.json
 
 const SYSTEM_PROMPT = [
@@ -83,6 +83,7 @@ async function handleChat(request) {
         messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...parsed.messages],
         temperature: 0.7,
         max_completion_tokens: MAX_OUTPUT_TOKENS,
+        ...reasoningOptions(model),
       }),
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
@@ -178,12 +179,19 @@ function upstreamError(upstream, data, model) {
     );
   }
   if (status === 404 || code.includes('model')) {
-    return errorResponse(502, 'model_unavailable', `The model “${model}” isn’t available on Groq. Check GROQ_MODEL.`);
+    const reason = typeof detail.message === 'string' ? ` Groq says: ${clip(detail.message, 200)}` : '';
+    return errorResponse(502, 'model_unavailable', `The model “${model}” isn’t available on Groq. Check GROQ_MODEL.${reason}`);
   }
   if (status === 413 || code === 'context_length_exceeded') {
     return errorResponse(400, 'context_too_long', 'This conversation is too long for the model. Start a new chat to keep going.');
   }
   return errorResponse(502, 'upstream_error', 'Groq couldn’t answer just now. Please try again.');
+}
+
+// GPT-OSS models think before answering: keep that quick for chat and leave the
+// reasoning text out of the response. Other models don't accept these options.
+function reasoningOptions(model) {
+  return model.startsWith('openai/gpt-oss') ? { reasoning_effort: 'low', include_reasoning: false } : {};
 }
 
 // Some reasoning models put their working inside <think> tags; only the answer is shown.

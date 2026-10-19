@@ -26,7 +26,7 @@ function stubGroq(responder) {
   };
 }
 
-function groqReply(content, { finishReason = 'stop', model = 'llama-3.3-70b-versatile' } = {}) {
+function groqReply(content, { finishReason = 'stop', model = 'openai/gpt-oss-120b' } = {}) {
   return Response.json({
     model,
     choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: finishReason }],
@@ -102,25 +102,29 @@ test('sends the conversation to Groq and returns the reply', async () => {
   });
   assert.equal(res.status, 200);
   assert.equal(res.headers.get('cache-control'), 'no-store');
-  assert.deepEqual(await res.json(), { reply: 'Hi! How can I help?', model: 'llama-3.3-70b-versatile', truncated: false });
+  assert.deepEqual(await res.json(), { reply: 'Hi! How can I help?', model: 'openai/gpt-oss-120b', truncated: false });
 
   const [{ url, init, body }] = calls;
   assert.equal(url, 'https://api.groq.com/openai/v1/chat/completions');
   assert.equal(init.headers.Authorization, `Bearer ${FAKE_KEY}`);
   assert.ok(init.signal instanceof AbortSignal, 'Groq request has a timeout signal');
-  assert.equal(body.model, 'llama-3.3-70b-versatile');
-  assert.equal(body.max_completion_tokens, 1024);
+  assert.equal(body.model, 'openai/gpt-oss-120b');
+  assert.equal(body.max_completion_tokens, 2048);
+  assert.equal(body.reasoning_effort, 'low', 'GPT-OSS thinks briefly');
+  assert.equal(body.include_reasoning, false, 'reasoning text is not returned');
   assert.equal(body.messages[0].role, 'system');
   assert.match(body.messages[0].content, /Orbit/);
   assert.deepEqual(body.messages.slice(1).map((m) => m.content), ['Hello', 'Hey there.', 'What is a black hole?']);
 });
 
-test('uses GROQ_MODEL when it is set', async () => {
-  process.env.GROQ_MODEL = 'openai/gpt-oss-120b';
-  stubGroq(() => groqReply('ok', { model: 'openai/gpt-oss-120b' }));
+test('uses GROQ_MODEL when it is set, without GPT-OSS-only options', async () => {
+  process.env.GROQ_MODEL = 'qwen/qwen3.8-27b';
+  stubGroq(() => groqReply('ok', { model: 'qwen/qwen3.8-27b' }));
   const res = await post(userSays('Hello'));
-  assert.equal(calls[0].body.model, 'openai/gpt-oss-120b');
-  assert.equal((await res.json()).model, 'openai/gpt-oss-120b');
+  assert.equal(calls[0].body.model, 'qwen/qwen3.8-27b');
+  assert.equal(calls[0].body.reasoning_effort, undefined);
+  assert.equal(calls[0].body.include_reasoning, undefined);
+  assert.equal((await res.json()).model, 'qwen/qwen3.8-27b');
 });
 
 test('keeps only the 12 most recent messages and drops client system prompts', async () => {
@@ -175,12 +179,13 @@ test('reports a rejected key without echoing it', async () => {
 
 test('reports an unknown model', async () => {
   process.env.GROQ_MODEL = 'not-a-model';
-  stubGroq(() => Response.json({ error: { message: 'model not found', code: 'model_not_found' } }, { status: 404 }));
+  stubGroq(() => Response.json({ error: { message: 'The model `not-a-model` has been decommissioned.', code: 'model_decommissioned' } }, { status: 400 }));
   const res = await post(userSays('Hello'));
   assert.equal(res.status, 502);
   const { error } = await res.json();
   assert.equal(error.code, 'model_unavailable');
   assert.match(error.message, /not-a-model/);
+  assert.match(error.message, /Groq says: .*decommissioned/);
 });
 
 test('turns an upstream timeout into 504', async () => {
