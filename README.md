@@ -64,6 +64,7 @@ The constants live at the top of `api/chat.js` and `public/app.js`.
 
 - **The key never reaches the browser.** The page only calls `/api/chat`; the function reads `GROQ_API_KEY` from the environment.
 - **The endpoint is public.** There's no login, by design, so anyone with the URL can use your Groq quota. Groq's own rate limits apply and show up as a friendly "rate-limited" message. If you need more control, add a rate-limit rule in Vercel Firewall.
+- **Embedding:** only `https://ianmauck.lovable.app` (and Orbit itself) may show Orbit in an iframe, via `frame-ancestors` in `vercel.json`. To embed it on another domain, such as a custom domain, add that origin there and redeploy.
 - The endpoint only accepts JSON `POST` requests, ignores any `system` messages sent by the client, and uses a short built-in system prompt. No custom rules or knowledge files are loaded.
 - Replies are rendered from Markdown with HTML escaped first, so model output can't inject markup.
 - The UI respects `prefers-reduced-motion`, has visible focus styles and a skip link, and works with the keyboard: **Enter** sends, **Shift+Enter** adds a new line, **Esc** stops a reply.
