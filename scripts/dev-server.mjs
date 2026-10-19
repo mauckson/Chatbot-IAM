@@ -119,7 +119,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   loadEnvFiles();
   const server = await startDevServer();
   const { port } = server.address();
-  console.log(`Orbit is running at http://localhost:${port}`);
+  console.log(`IAM-bot-1 is running at http://localhost:${port}`);
   if (!process.env.GROQ_API_KEY) {
     console.log('GROQ_API_KEY is not set, so chat requests will show a setup error. Add it to .env.local.');
   }

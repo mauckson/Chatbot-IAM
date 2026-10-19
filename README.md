@@ -1,4 +1,4 @@
-# Orbit
+# IAM-bot-1
 
 A general-purpose AI chatbot powered by [Groq](https://groq.com). Ask questions on any topic, write, brainstorm, explain concepts and follow up. Plain HTML, CSS and JavaScript, with one Vercel serverless function for the Groq call.
 
@@ -10,7 +10,7 @@ public/index.html      The page
 public/styles.css      Styles (dark default + light theme)
 public/app.js          Chat client: messages, loading/error states, Markdown, theme
 public/theme-init.js   Applies the saved theme before first paint
-public/assets/         robot.png (the Orbit mascot) and favicon.svg
+public/assets/         robot.png (the IAM-bot-1 mascot) and favicon.svg
 scripts/dev-server.mjs Zero-dependency local server that mirrors Vercel
 tests/chat.test.mjs    Tests for the endpoint (Groq is stubbed)
 vercel.json            Output directory, function timeout, security headers
@@ -64,7 +64,7 @@ The constants live at the top of `api/chat.js` and `public/app.js`.
 
 - **The key never reaches the browser.** The page only calls `/api/chat`; the function reads `GROQ_API_KEY` from the environment.
 - **The endpoint is public.** There's no login, by design, so anyone with the URL can use your Groq quota. Groq's own rate limits apply and show up as a friendly "rate-limited" message. If you need more control, add a rate-limit rule in Vercel Firewall.
-- **Embedding:** only `https://ianmauck.lovable.app` (and Orbit itself) may show Orbit in an iframe, via `frame-ancestors` in `vercel.json`. To embed it on another domain, such as a custom domain, add that origin there and redeploy.
+- **Embedding:** only `https://ianmauck.lovable.app` (and IAM-bot-1 itself) may show IAM-bot-1 in an iframe, via `frame-ancestors` in `vercel.json`. To embed it on another domain, such as a custom domain, add that origin there and redeploy.
 - The endpoint only accepts JSON `POST` requests, ignores any `system` messages sent by the client, and uses a short built-in system prompt. No custom rules or knowledge files are loaded.
 - Replies are rendered from Markdown with HTML escaped first, so model output can't inject markup.
 - The UI respects `prefers-reduced-motion`, has visible focus styles and a skip link, and works with the keyboard: **Enter** sends, **Shift+Enter** adds a new line, **Esc** stops a reply.

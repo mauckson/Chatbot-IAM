@@ -1,8 +1,8 @@
 {
-  "name": "orbit-chatbot",
+  "name": "iam-bot-1",
   "version": "1.0.0",
   "private": true,
-  "description": "Orbit: a general-purpose AI chatbot powered by Groq.",
+  "description": "IAM-bot-1: a general-purpose AI chatbot powered by Groq.",
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev-server.mjs",

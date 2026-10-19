@@ -113,7 +113,7 @@ test('sends the conversation to Groq and returns the reply', async () => {
   assert.equal(body.reasoning_effort, 'low', 'GPT-OSS thinks briefly');
   assert.equal(body.include_reasoning, false, 'reasoning text is not returned');
   assert.equal(body.messages[0].role, 'system');
-  assert.match(body.messages[0].content, /Orbit/);
+  assert.match(body.messages[0].content, /IAM-bot-1/);
   assert.deepEqual(body.messages.slice(1).map((m) => m.content), ['Hello', 'Hey there.', 'What is a black hole?']);
 });
 

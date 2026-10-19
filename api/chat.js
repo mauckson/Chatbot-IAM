@@ -1,4 +1,4 @@
-// Orbit chat endpoint: POST /api/chat -> Groq chat completions.
+// IAM-bot-1 chat endpoint: POST /api/chat -> Groq chat completions.
 // GROQ_API_KEY is read from the server environment and never sent to the browser.
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -14,7 +14,7 @@ const MAX_OUTPUT_TOKENS = 2048; // reasoning models spend part of this thinking
 const UPSTREAM_TIMEOUT_MS = 25_000; // keep below maxDuration in vercel.json
 
 const SYSTEM_PROMPT = [
-  'You are Orbit, a friendly general-purpose AI assistant.',
+  'You are IAM-bot-1, a friendly general-purpose AI assistant.',
   'Help people with questions on any topic, writing, brainstorming, explaining concepts and follow-up questions.',
   'Be clear and concise, and use Markdown (short paragraphs, lists, code blocks) when it makes an answer easier to read.',
   'If you are unsure, or something may have changed since your training data, say so instead of guessing.',
@@ -23,12 +23,12 @@ const SYSTEM_PROMPT = [
 export default {
   async fetch(request) {
     if (request.method !== 'POST') {
-      return errorResponse(405, 'method_not_allowed', 'Use POST to talk to Orbit.', { Allow: 'POST' });
+      return errorResponse(405, 'method_not_allowed', 'Use POST to talk to IAM-bot-1.', { Allow: 'POST' });
     }
     try {
       return await handleChat(request);
     } catch (err) {
-      console.error('[orbit] Unexpected error:', err?.message || err);
+      console.error('[iam-bot-1] Unexpected error:', err?.message || err);
       return errorResponse(500, 'server_error', 'Something went wrong on the server. Please try again.');
     }
   },
@@ -60,11 +60,11 @@ async function handleChat(request) {
 
   const apiKey = (process.env.GROQ_API_KEY || '').trim();
   if (!apiKey) {
-    console.error('[orbit] GROQ_API_KEY is not set.');
+    console.error('[iam-bot-1] GROQ_API_KEY is not set.');
     return errorResponse(
       500,
       'missing_api_key',
-      'Orbit isn’t connected to Groq yet: the server has no GROQ_API_KEY. Add it as an environment variable and restart or redeploy.',
+      'IAM-bot-1 isn’t connected to Groq yet: the server has no GROQ_API_KEY. Add it as an environment variable and restart or redeploy.',
     );
   }
   const model = (process.env.GROQ_MODEL || '').trim() || DEFAULT_MODEL;
@@ -90,10 +90,10 @@ async function handleChat(request) {
     data = await upstream.json().catch(() => null);
   } catch (err) {
     if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
-      console.error(`[orbit] Groq timed out after ${UPSTREAM_TIMEOUT_MS}ms.`);
+      console.error(`[iam-bot-1] Groq timed out after ${UPSTREAM_TIMEOUT_MS}ms.`);
       return errorResponse(504, 'upstream_timeout', 'Groq took too long to respond. Please try again.');
     }
-    console.error('[orbit] Could not reach Groq:', err?.message || err);
+    console.error('[iam-bot-1] Could not reach Groq:', err?.message || err);
     return errorResponse(502, 'upstream_unreachable', 'Couldn’t reach Groq. Please try again in a moment.');
   }
 
@@ -102,7 +102,7 @@ async function handleChat(request) {
   const choice = data?.choices?.[0];
   const reply = stripThinking(choice?.message?.content);
   if (!reply) {
-    console.error('[orbit] Groq returned an empty reply.', choice?.finish_reason);
+    console.error('[iam-bot-1] Groq returned an empty reply.', choice?.finish_reason);
     return errorResponse(502, 'empty_reply', 'Groq sent back an empty reply. Please try again.');
   }
 
@@ -164,7 +164,7 @@ function upstreamError(upstream, data, model) {
   const status = upstream.status;
   const detail = data?.error || {};
   const code = String(detail.code || '');
-  console.error(`[orbit] Groq error ${status}:`, code || '-', detail.message || '');
+  console.error(`[iam-bot-1] Groq error ${status}:`, code || '-', detail.message || '');
 
   if (status === 401 || status === 403) {
     return errorResponse(502, 'upstream_auth', 'Groq rejected the server’s API key. Check GROQ_API_KEY.');

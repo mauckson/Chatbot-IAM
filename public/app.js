@@ -1,4 +1,4 @@
-// Orbit chat client. It only talks to /api/chat; the Groq key never reaches the browser.
+// IAM-bot-1 chat client. It only talks to /api/chat; the Groq key never reaches the browser.
 (() => {
   'use strict';
 
@@ -7,7 +7,7 @@
   const HISTORY_CHAR_BUDGET = 24000;
   const REQUEST_TIMEOUT_MS = 35000; // a little longer than the server's own Groq timeout
   const SLOW_HINT_MS = 8000;
-  const THEME_KEY = 'orbit-theme';
+  const THEME_KEY = 'iam-bot-theme';
   const NO_RETRY = new Set(['message_too_long', 'invalid_messages', 'invalid_json', 'context_too_long']);
 
   const $ = (id) => document.getElementById(id);
@@ -96,16 +96,16 @@
       if (state.pending !== job) return;
       loader.remove();
       if (job.reason === 'user') {
-        renderError('Stopped. Orbit didn’t finish that reply.', { retry: true, muted: true });
+        renderError('Stopped. IAM-bot-1 didn’t finish that reply.', { retry: true, muted: true });
       } else if (job.reason === 'timeout') {
-        renderError('Orbit took too long to answer. Please try again.', { retry: true });
+        renderError('IAM-bot-1 took too long to answer. Please try again.', { retry: true });
       } else if (err instanceof ChatError) {
         renderError(err.message, {
           retry: !NO_RETRY.has(err.code),
           newChat: err.code === 'context_too_long',
         });
       } else {
-        renderError('Couldn’t reach the Orbit server. Check your connection and try again.', { retry: true });
+        renderError('Couldn’t reach the IAM-bot-1 server. Check your connection and try again.', { retry: true });
       }
     } finally {
       clearTimeout(slowTimer);
@@ -198,10 +198,10 @@
 
   function renderBotMessage(text, { model, truncated } = {}) {
     const modelLabel = model ? h('span', { className: 'label label--dim', text: model }) : null;
-    const { li, body } = botShell('', 'Orbit', modelLabel);
+    const { li, body } = botShell('', 'IAM-bot-1', modelLabel);
     body.append(h('div', { className: 'msg__bubble prose', html: renderMarkdown(text) }));
     if (truncated) {
-      body.append(h('p', { className: 'msg__note', text: 'This reply hit the length limit. Ask Orbit to continue.' }));
+      body.append(h('p', { className: 'msg__note', text: 'This reply hit the length limit. Ask IAM-bot-1 to continue.' }));
     }
     const copy = h('button', { type: 'button', className: 'tool-btn', 'data-action': 'copy', 'aria-label': 'Copy reply' }, [
       icon(ICONS.copy),
@@ -214,7 +214,7 @@
   }
 
   function renderLoading() {
-    const { li, body } = botShell('msg--loading', 'Orbit');
+    const { li, body } = botShell('msg--loading', 'IAM-bot-1');
     body.append(
       h('div', { className: 'msg__bubble' }, [
         h('span', { className: 'typing', 'aria-hidden': 'true' }, [h('i'), h('i'), h('i')]),
