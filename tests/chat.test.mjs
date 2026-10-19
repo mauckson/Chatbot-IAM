@@ -250,6 +250,7 @@ test('adds the site guide to the system prompt and caches it', async () => {
   const system = calls[0].body.messages[0].content;
   assert.ok(system.includes(`SITE GUIDE\n${SAMPLE_GUIDE}`));
   assert.match(system, /Never invent a page, section or link/);
+  assert.match(system, /Never ask which website/);
   assert.match(system, /point to the Contact section/);
   assert.match(system, /Never share a phone number or address/);
   assert.equal(calls[0].body.temperature, 0.3);
